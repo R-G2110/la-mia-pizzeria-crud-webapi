@@ -11,39 +11,30 @@ namespace la_mia_pizzeria_static.Data
         public DbSet<Pizza> Pizzas { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<Ingredient> Ingredients { get; set; }
-        public DbSet<PizzaIngredient> PizzaIngredients { get; set; }
 
         public const string CONNECTION_STRING = "Data Source=localhost;Initial Catalog=db_la_pizzeria;Integrated Security=True;Encrypt=True;Trust Server Certificate=True";
+        
+        public PizzaDbContext()
+        {
+        }
+
+        public PizzaDbContext(DbContextOptions<PizzaDbContext> options) : base(options)
+        {
+        }
+
+        protected override void OnModelCreating(ModelBuilder builder)
+        {
+            base.OnModelCreating(builder);
+            // Customize the ASP.NET Identity model and override the defaults if needed.
+            // For example, you can rename the ASP.NET Identity table names and more.
+            // Add your customizations after calling base.OnModelCreating(builder);
+        }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseSqlServer(CONNECTION_STRING);
         }
 
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            modelBuilder.Entity<Category>()
-                .HasMany(c => c.Pizzas)
-                .WithOne(p => p.Category)
-                .HasForeignKey(p => p.CategoryId)
-                .OnDelete(DeleteBehavior.SetNull); 
-
-            modelBuilder.Entity<PizzaIngredient>()
-                .HasKey(pi => new { pi.PizzaId, pi.IngredientId });
-
-            modelBuilder.Entity<PizzaIngredient>()
-                .HasOne(pi => pi.Pizza)
-                .WithMany(p => p.PizzaIngredients)
-                .HasForeignKey(pi => pi.PizzaId)
-                .OnDelete(DeleteBehavior.Cascade); 
-
-            modelBuilder.Entity<PizzaIngredient>()
-                .HasOne(pi => pi.Ingredient)
-                .WithMany(i => i.PizzaIngredients)
-                .HasForeignKey(pi => pi.IngredientId)
-                .OnDelete(DeleteBehavior.Cascade); 
-
-            base.OnModelCreating(modelBuilder);
-        }
+        
     }
 }

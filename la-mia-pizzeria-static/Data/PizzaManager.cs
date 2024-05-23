@@ -6,130 +6,151 @@ using System.Linq;
 
 namespace la_mia_pizzeria_static.Data
 {
+    public enum ResultType
+    {
+        OK,
+        Exception,
+        NotFound
+    }
     public static class PizzaManager
     {
         public static int CountAllPizzas()
         {
-            using (PizzaDbContext db = new PizzaDbContext())
-            {
-                return db.Pizzas.Count();
-            }
+            using PizzaDbContext db = new PizzaDbContext();
+            return db.Pizzas.Count();
         }
 
         public static List<Pizza> GetAllPizzas()
         {
-            using (PizzaDbContext db = new PizzaDbContext())
-            {
-                return db.Pizzas.Include(p => p.Category).OrderByDescending(p => p.Id).ToList();
-            }
+            using PizzaDbContext db = new PizzaDbContext();
+            return db.Pizzas.ToList();
         }
 
-        public static Ingredient GetIngredient(int id)
+        public static Pizza GetPizza(int id, bool includeReferences = true)
         {
-            using (var db = new PizzaDbContext())
-            {
-                return db.Ingredients.FirstOrDefault(i => i.Id == id);
-            }
+            using PizzaDbContext db = new PizzaDbContext();
+            if (includeReferences)
+                return db.Pizzas.Where(x => x.Id == id).Include(p => p.Category).Include(p => p.Ingredients).FirstOrDefault();
+            return db.Pizzas.FirstOrDefault(p => p.Id == id);
         }
 
-        public static Pizza GetPizza(int id)
+        public static Pizza GetPizzaByName(string name)
         {
-            using (PizzaDbContext db = new PizzaDbContext())
-            {
-                return db.Pizzas
-                         .Include(p => p.Category)
-                         .Include(p => p.PizzaIngredients)
-                             .ThenInclude(pi => pi.Ingredient)
-                         .FirstOrDefault(p => p.Id == id);
-            }
+            using PizzaDbContext db = new PizzaDbContext();
+            return db.Pizzas.FirstOrDefault(p => p.Name == name);
         }
-        public static void InsertPizza(Pizza pizza, int[] selectedIngredients)
+
+        public static List<Category> GetAllCategories()
         {
-            if (pizza == null)
+            using PizzaDbContext db = new PizzaDbContext();
+            return db.Categories.ToList();
+        }
+        public static List<Ingredient> GetAllIngredients()
+        {
+            using PizzaDbContext db = new PizzaDbContext();
+            return db.Ingredients.ToList();
+        }
+
+
+        public static void InsertPizza(Pizza pizza, List<string> selectedIngredients)
+        {
+            using PizzaDbContext db = new PizzaDbContext();
+            pizza.Ingredients = new List<Ingredient>();
+            if (selectedIngredients != null)
             {
-                // Gestisci il caso in cui pizza è null (ad esempio, solleva un'eccezione o esegui un'altra azione)
-                throw new ArgumentNullException(nameof(pizza), "La pizza non può essere nulla.");
+                // Trasformiamo gli ID scelti in ingredienti da aggiungere tra i riferimenti in Pizza
+                foreach (var ingredient in selectedIngredients)
+                {
+                    int id = int.Parse(ingredient);
+                    // NON usiamo un GetIngredientById() perché userebbe un db context diverso
+                    // e ciò causerebbe errore in fase di salvataggio - usiamo lo stesso context all'interno della stessa operazione
+                    var ingredientFromDb = db.Ingredients.FirstOrDefault(x => x.Id == id);
+                    if (ingredientFromDb != null)
+                    {
+                        pizza.Ingredients.Add(ingredientFromDb);
+                    }
+                }
             }
+            db.Pizzas.Add(pizza);
+            db.SaveChanges();
+        }
 
-            using (PizzaDbContext db = new PizzaDbContext())
+        public static bool UpdatePizza(int id, Pizza pizza, List<string> selectedIngredients)
+        {
+            try
             {
-                // Aggiungi la pizza al contesto del database
-                db.Pizzas.Add(pizza);
+                // Non posso riusare GetPizza()
+                // perché il DbContext deve continuare a vivere
+                // affinché possa accorgersi di quali modifiche deve salvare
+                using PizzaDbContext db = new PizzaDbContext();
+                var pizzaDaModificare = db.Pizzas.Where(p => p.Id == id).Include(p => p.Ingredients).FirstOrDefault();
+                if (pizzaDaModificare == null)
+                    return false;
+                pizzaDaModificare.Name = pizza.Name;
+                pizzaDaModificare.Description = pizza.Description;
+                pizzaDaModificare.Price = pizza.Price;
+                pizzaDaModificare.CategoryId = pizza.CategoryId;
 
-                // Aggiungi gli ingredienti selezionati alla pizza
+                // Prima svuoto così da salvare solo le informazioni che l'utente ha scelto, NON le aggiungiamo ai vecchi dati
+                pizzaDaModificare.Ingredients.Clear();
                 if (selectedIngredients != null)
                 {
-                    foreach (var ingredientId in selectedIngredients)
+                    foreach (var ingredient in selectedIngredients)
                     {
-                        var ingredient = db.Ingredients.Find(ingredientId);
-                        if (ingredient != null)
-                        {
-                            // Assicurati che pizza.PizzaIngredients non sia null
-                            pizza.PizzaIngredients ??= new List<PizzaIngredient>();
-                            pizza.PizzaIngredients.Add(new PizzaIngredient { IngredientId = ingredientId });
-                        }
+                        int ingredientId = int.Parse(ingredient);
+                        var ingredientFromDb = db.Ingredients.FirstOrDefault(x => x.Id == ingredientId);
+                        if (ingredientFromDb != null)
+                            pizzaDaModificare.Ingredients.Add(ingredientFromDb);
                     }
                 }
 
-                // Salva le modifiche nel database
                 db.SaveChanges();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                return false;
             }
         }
 
-
-
-        public static void UpdatePizza(Pizza pizza, int[] selectedIngredients)
+        public static ResultType UpdatePizzaWithEnum(int id, Pizza pizza) // solo a scopo didattico
         {
-            using (PizzaDbContext db = new PizzaDbContext())
+            try
             {
-                var originalPizza = db.Pizzas
-                                      .Include(p => p.PizzaIngredients)
-                                      .SingleOrDefault(p => p.Id == pizza.Id);
+                using PizzaDbContext db = new PizzaDbContext();
+                var pizzaDaModificare = db.Pizzas.FirstOrDefault(p => p.Id == id);
+                if (pizzaDaModificare == null)
+                    return ResultType.NotFound;
+                pizzaDaModificare.Name = pizza.Name;
+                pizzaDaModificare.Description = pizza.Description;
+                pizzaDaModificare.Price = pizza.Price;
 
-                if (originalPizza == null)
-                {
-                    // Pizza non trovata, gestisci di conseguenza (ad esempio, restituisci o solleva un'eccezione)
-                    return;
-                }
-
-                // Aggiorna le proprietà della pizza originale con quelle della pizza modificata
-                originalPizza.Name = pizza.Name;
-                originalPizza.Price = pizza.Price;
-                originalPizza.Description = pizza.Description;
-                originalPizza.CategoryId = pizza.CategoryId;
-
-                // Rimuovi gli ingredienti esistenti associati alla pizza
-                originalPizza.PizzaIngredients.Clear();
-
-                // Aggiungi o aggiorna gli ingredienti selezionati
-                if (selectedIngredients != null)
-                {
-                    foreach (var ingredientId in selectedIngredients)
-                    {
-                        var ingredient = db.Ingredients.Find(ingredientId);
-                        if (ingredient != null)
-                        {
-                            originalPizza.PizzaIngredients.Add(new PizzaIngredient { IngredientId = ingredientId });
-                        }
-                    }
-                }
-
-                // Esegui l'aggiornamento nel contesto del database
                 db.SaveChanges();
+                return ResultType.OK;
+            }
+            catch (Exception ex)
+            {
+                return ResultType.Exception;
             }
         }
 
-
-        public static void DeletePizza(int id)
+        public static bool DeletePizza(int id)
         {
-            using (PizzaDbContext db = new PizzaDbContext())
+            try
             {
-                var pizza = db.Pizzas.FirstOrDefault(p => p.Id == id);
-                if (pizza != null)
-                {
-                    db.Pizzas.Remove(pizza);
-                    db.SaveChanges();
-                }
+                //using PizzaDbContext db = new PizzaDbContext();
+                var pizzaDaCancellare = GetPizza(id, false); // db.Pizzas.FirstOrDefault(p => p.Id == id);
+                if (pizzaDaCancellare == null)
+                    return false;
+
+                using PizzaDbContext db = new PizzaDbContext();
+                db.Remove(pizzaDaCancellare);
+                db.SaveChanges();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                return false;
             }
         }
 
@@ -203,43 +224,7 @@ namespace la_mia_pizzeria_static.Data
                 }
             }
         }
-        public static void SeedPizzaIngredient()
-        {
-            using (PizzaDbContext db = new PizzaDbContext())
-            {
-                if (db.PizzaIngredients.Count() == 0)
-                {
-                    var margherita = db.Pizzas.First(p => p.Name == "Margherita");
-                    var marinara = db.Pizzas.First(p => p.Name == "Marinara");
-                    var diavola = db.Pizzas.First(p => p.Name == "Diavola");
-
-                    var farina = db.Ingredients.First(i => i.Name == "Farina 00");
-                    var acqua = db.Ingredients.First(i => i.Name == "Acqua");
-                    var sale = db.Ingredients.First(i => i.Name == "Sale");
-                    var lievito = db.Ingredients.First(i => i.Name == "Lievito madre");
-                    var mozzarella = db.Ingredients.First(i => i.Name == "Mozzarella");
-
-                    db.PizzaIngredients.AddRange(
-                        new PizzaIngredient { PizzaId = margherita.Id, IngredientId = farina.Id },
-                        new PizzaIngredient { PizzaId = margherita.Id, IngredientId = acqua.Id },
-                        new PizzaIngredient { PizzaId = margherita.Id, IngredientId = sale.Id },
-                        new PizzaIngredient { PizzaId = margherita.Id, IngredientId = lievito.Id },
-                        new PizzaIngredient { PizzaId = margherita.Id, IngredientId = mozzarella.Id },
-                        new PizzaIngredient { PizzaId = marinara.Id, IngredientId = farina.Id },
-                        new PizzaIngredient { PizzaId = marinara.Id, IngredientId = acqua.Id },
-                        new PizzaIngredient { PizzaId = marinara.Id, IngredientId = sale.Id },
-                        new PizzaIngredient { PizzaId = marinara.Id, IngredientId = lievito.Id },
-                        new PizzaIngredient { PizzaId = diavola.Id, IngredientId = farina.Id },
-                        new PizzaIngredient { PizzaId = diavola.Id, IngredientId = acqua.Id },
-                        new PizzaIngredient { PizzaId = diavola.Id, IngredientId = sale.Id },
-                        new PizzaIngredient { PizzaId = diavola.Id, IngredientId = lievito.Id },
-                        new PizzaIngredient { PizzaId = diavola.Id, IngredientId = mozzarella.Id }
-                    );
-
-                    db.SaveChanges();
-                }
-            }
-        }
+        
 
     }
     

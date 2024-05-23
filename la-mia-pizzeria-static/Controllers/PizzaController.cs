@@ -4,148 +4,152 @@ using Microsoft.AspNetCore.Mvc;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Authorization;
+using System.Diagnostics;
 
 namespace LaMiaPizzeria.Controllers
 {
-    [Authorize(Roles = "ADMIN,USER")]
+    [Authorize]
     public class PizzaController : Controller
     {
+        private readonly ILogger<PizzaController> _logger;
+
+        public PizzaController(ILogger<PizzaController> logger)
+        {
+            _logger = logger;
+        }
+
+        [HttpGet]
+        [Authorize(Roles = "USER,ADMIN")]
         public IActionResult Index()
         {
             return View(PizzaManager.GetAllPizzas());
         }
 
-        [HttpPost]
-        public IActionResult Search(string searchString)
-        {
-            var pizzas = PizzaManager.GetAllPizzas();
-
-            if (!string.IsNullOrEmpty(searchString))
-            {
-                pizzas = pizzas.Where(p => p.Name.ToLower().Contains(searchString.ToLower()) || p.Description.ToLower().Contains(searchString.ToLower())).ToList();
-            }
-
-            if (!pizzas.Any())
-            {
-                ViewData["SearchMessage"] = $"Nessuna pizza '{searchString}' è stata trovata.";
-            }
-
-            return View("Index", pizzas);
-        }
-
+        [HttpGet]
+        [Authorize(Roles = "USER,ADMIN")]
         public IActionResult GetPizza(int id)
         {
-            var pizza = PizzaManager.GetPizza(id);
-            if (pizza != null)
-                return View(pizza);
-            else
-                return View("errore");
+            try
+            {
+                var pizza = PizzaManager.GetPizza(id);
+                if (pizza != null)
+                    return View(pizza);
+                else
+                    //return NotFound();
+                    return View("Errore", new ErrorViewModel($"La pizza {id} non è stata trovata!"));
+            }
+            catch (Exception e)
+            {
+                return View("Errore", new ErrorViewModel(e.Message));
+                //return BadRequest(e.Message);
+            }
         }
 
+        [HttpGet]
         [Authorize(Roles = "ADMIN")]
-        public IActionResult Create()
+        public IActionResult CreatePizza() // Restituisce la form per la creazione di pizze
         {
-            ViewBag.Categories = new SelectList(GetCategories(), "Id", "Name");
-            ViewBag.Ingredients = GetIngredients();
-            return View("PizzaForm", new Pizza());
+            
+            List<Category> categories = PizzaManager.GetAllCategories();
+            PizzaFormModel model = new PizzaFormModel( categories);
+            model.CreateIngredients();
+            return View(model);
         }
 
-        [Authorize(Roles = "ADMIN")]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Create(Pizza pizza, int[] selectedIngredients)
-        {
-            if (ModelState.IsValid)
-            {
-                // Chiamata al metodo InsertPizza con l'array selectedIngredients
-                PizzaManager.InsertPizza(pizza, selectedIngredients);
-                TempData["SuccessMessage"] = $"La pizza {pizza.Name} è stata creata con successo!";
-                return RedirectToAction("Index");
-            }
-
-            ViewBag.Categories = new SelectList(GetCategories(), "Id", "Name");
-            ViewBag.Ingredients = GetIngredients();
-
-            // Aggiungi gli ingredienti selezionati al modello
-            if (selectedIngredients != null)
-            {
-                pizza.PizzaIngredients = selectedIngredients.Select(id => new PizzaIngredient { IngredientId = id }).ToList();
-            }
-
-            return View("PizzaForm", pizza);
-        }
-
         [Authorize(Roles = "ADMIN")]
-        public IActionResult Edit(int id)
+        public IActionResult CreatePizza(PizzaFormModel pizzaDaInserire)
         {
-            var pizza = PizzaManager.GetPizza(id);
-            if (pizza != null)
+            if (ModelState.IsValid == false)
             {
-                ViewBag.Categories = new SelectList(GetCategories(), "Id", "Name", pizza.CategoryId);
-                ViewBag.Ingredients = GetIngredients();
-                return View("PizzaForm", pizza);
-            }
-            else
-            {
-                return View("errore");
-            }
-        }
-
-        [Authorize(Roles = "ADMIN")]
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult Edit(Pizza pizza, int[] selectedIngredients)
-        {
-            if (!ModelState.IsValid)
-            {
-                ViewBag.Categories = new SelectList(GetCategories(), "Id", "Name", pizza.CategoryId);
-                ViewBag.Ingredients = GetIngredients();
-
-                // Aggiungi gli ingredienti selezionati al modello
-                if (selectedIngredients != null)
-                {
-                    pizza.PizzaIngredients = selectedIngredients.Select(id => new PizzaIngredient { IngredientId = id }).ToList();
-                }
-
-                return View("PizzaForm", pizza);
+                // Ritorno la form di prima con i dati della pizza
+                // precompilati dall'utente
+                pizzaDaInserire.Categories = PizzaManager.GetAllCategories();
+                pizzaDaInserire.CreateIngredients();
+                return View("CreatePizza", pizzaDaInserire);
             }
 
-            // Chiamata al metodo UpdatePizza con l'array selectedIngredients
-            PizzaManager.UpdatePizza(pizza, selectedIngredients);
-
-            TempData["SuccessMessage"] = $"La pizza {pizza.Name} è stata modificata con successo!";
+            PizzaManager.InsertPizza(pizzaDaInserire.Pizza, pizzaDaInserire.SelectedIngredients);
+            // Richiamiamo la action Index affinché vengano mostrate tutte le pizze
+            // inclusa quella nuova
             return RedirectToAction("Index");
         }
 
-        private List<Ingredient> GetIngredients()
-        {
-            using (var db = new PizzaDbContext())
-            {
-                return db.Ingredients.ToList();
-            }
-        }
-
-        [Authorize]
-        public IActionResult Delete(int id)
+        [HttpGet]
+        [Authorize(Roles = "ADMIN")]
+        // Mi serve l'ID della pizza per:
+        // 1) Indicare alla view QUALE pizza devo modificare
+        // 2) Popolare la form della view coi dati della pizza che sto per modificare
+        public IActionResult UpdatePizza(int id) // Restituisce la form per l'update di una pizza
         {
             var pizza = PizzaManager.GetPizza(id);
             if (pizza == null)
-            {
-                TempData["ErrorMessage"] = $"La pizza {pizza?.Name} non è stata trovata!";
-                return RedirectToAction("Index");
-            }
-
-            PizzaManager.DeletePizza(id);
-            TempData["SuccessMessage"] = $"La pizza {pizza.Name} è stata eliminata con successo!";
-            return RedirectToAction("Index");
+                return NotFound();
+            PizzaFormModel model = new PizzaFormModel(pizza, PizzaManager.GetAllCategories());
+            model.CreateIngredients();
+            return View(model);
         }
 
-        private List<Category> GetCategories()
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "ADMIN")]
+        public IActionResult UpdatePizza(int id, PizzaFormModel pizzaDaModificare) // Restituisce la form per la creazione di pizze
         {
-            using (var db = new PizzaDbContext())
+            if (ModelState.IsValid == false)
             {
-                return db.Categories.ToList();
+                // Ritorno la form di prima con i dati della pizza
+                // precompilati dall'utente
+                pizzaDaModificare.Categories = PizzaManager.GetAllCategories();
+                pizzaDaModificare.CreateIngredients();
+                return View("UpdatePizza", pizzaDaModificare);
             }
+
+            var modified = PizzaManager.UpdatePizza(id, pizzaDaModificare.Pizza, pizzaDaModificare.SelectedIngredients);
+            if (modified)
+            {
+                // Richiamiamo la action Index affinché vengano mostrate tutte le pizze
+                return RedirectToAction("Index");
+            }
+            else
+                return NotFound();
+
+            /*
+            var state = PizzaManager.UpdatePizzaWithEnum(id, pizzaDaModificare);
+            switch (state)
+            {
+                case ResultType.OK:
+                    return RedirectToAction("Index");
+                    break;
+                case ResultType.NotFound:
+                    return NotFound();
+                    break;
+                case ResultType.Exception:
+                    return NotFound();
+                    break;
+            }
+            */
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "ADMIN")]
+        public IActionResult DeletePizza(int id)
+        {
+            var deleted = PizzaManager.DeletePizza(id);
+            if (deleted)
+            {
+                // Richiamiamo la action Index affinché vengano mostrate tutte le pizze
+                return RedirectToAction("Index");
+            }
+            else
+                return NotFound();
+        }
+
+        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+        public IActionResult Error()
+        {
+            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
     }
 }

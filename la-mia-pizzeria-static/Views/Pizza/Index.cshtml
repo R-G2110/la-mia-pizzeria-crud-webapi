@@ -42,7 +42,7 @@
                             Nome
                             <button onclick="toggleSortOrder(0)" class="btn btn-sm btn-light">▲▼</button>
                         </th>
-                        <th>Categoria</th>
+                        @* <th>Categoria</th> *@
                         <th>Descrizione</th>
                         <th style="width: 100px;">Prezzo</th>
                         <th style="width: 100px;">Azioni</th>
@@ -53,7 +53,7 @@
                     {
                         <tr style="cursor: pointer;">
                             <td>@pizza.Name</td>
-                            <td>@(pizza.Category?.Name ?? "Nessuna categoria")</td>
+                            @* <td>@(pizza.Category?.Name ?? "Nessuna categoria")</td> *@
                             <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                                 @pizza.Description
                             </td>

@@ -120,8 +120,8 @@ namespace la_mia_pizzeria_static.Migrations
                 name: "AspNetUserLogins",
                 columns: table => new
                 {
-                    LoginProvider = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    ProviderKey = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    LoginProvider = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
+                    ProviderKey = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
                     ProviderDisplayName = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     UserId = table.Column<string>(type: "nvarchar(450)", nullable: false)
                 },
@@ -165,8 +165,8 @@ namespace la_mia_pizzeria_static.Migrations
                 columns: table => new
                 {
                     UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    LoginProvider = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    LoginProvider = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
                     Value = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
@@ -199,30 +199,28 @@ namespace la_mia_pizzeria_static.Migrations
                         name: "FK_Pizzas_Categories_CategoryId",
                         column: x => x.CategoryId,
                         principalTable: "Categories",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.SetNull);
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
-                name: "PizzaIngredients",
+                name: "IngredientPizza",
                 columns: table => new
                 {
-                    PizzaId = table.Column<int>(type: "int", nullable: false),
-                    IngredientId = table.Column<int>(type: "int", nullable: false),
-                    Id = table.Column<int>(type: "int", nullable: false)
+                    IngredientsId = table.Column<int>(type: "int", nullable: false),
+                    PizzasId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_PizzaIngredients", x => new { x.PizzaId, x.IngredientId });
+                    table.PrimaryKey("PK_IngredientPizza", x => new { x.IngredientsId, x.PizzasId });
                     table.ForeignKey(
-                        name: "FK_PizzaIngredients_Ingredients_IngredientId",
-                        column: x => x.IngredientId,
+                        name: "FK_IngredientPizza_Ingredients_IngredientsId",
+                        column: x => x.IngredientsId,
                         principalTable: "Ingredients",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_PizzaIngredients_Pizzas_PizzaId",
-                        column: x => x.PizzaId,
+                        name: "FK_IngredientPizza_Pizzas_PizzasId",
+                        column: x => x.PizzasId,
                         principalTable: "Pizzas",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -268,9 +266,9 @@ namespace la_mia_pizzeria_static.Migrations
                 filter: "[NormalizedUserName] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
-                name: "IX_PizzaIngredients_IngredientId",
-                table: "PizzaIngredients",
-                column: "IngredientId");
+                name: "IX_IngredientPizza_PizzasId",
+                table: "IngredientPizza",
+                column: "PizzasId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Pizzas_CategoryId",
@@ -296,7 +294,7 @@ namespace la_mia_pizzeria_static.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
-                name: "PizzaIngredients");
+                name: "IngredientPizza");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles");

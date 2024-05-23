@@ -11,26 +11,26 @@ namespace la_mia_pizzeria_static
     {
         public static void Main(string[] args)
         {
-            var builder = WebApplication.CreateBuilder(args);
-            //var connectionString = builder.Configuration.GetConnectionString("PizzaDbContextConnection") ?? throw new InvalidOperationException("Connection string 'PizzaDbContextConnection' not found.");
-             
-            builder.Services.AddDbContext<PizzaDbContext>();
 
-            builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
-                .AddRoles<IdentityRole>()
-                .AddEntityFrameworkStores<PizzaDbContext>();
-
-            // Inizializza il database
-            using (var context = new PizzaDbContext())
-            {
-                context.Database.EnsureCreated();
-            }
-
-            // Esegui il seeding dei dati
             PizzaManager.SeedCategory();
             PizzaManager.SeedIngredient();
             PizzaManager.SeedPizza();
-            PizzaManager.SeedPizzaIngredient();
+            var builder = WebApplication.CreateBuilder(args);
+
+            builder.Services.AddDbContext<PizzaDbContext>();
+
+            builder.Services
+                .AddDefaultIdentity<IdentityUser>(options =>
+                {
+                    options.Password.RequiredLength = 1;
+                    options.Password.RequireNonAlphanumeric = false;
+                    options.Password.RequireUppercase = false;
+                    options.Password.RequireDigit = false;
+                    options.Password.RequireLowercase = false;
+                    options.SignIn.RequireConfirmedAccount = true;
+                })
+                .AddRoles<IdentityRole>()
+                .AddEntityFrameworkStores<PizzaDbContext>();
 
             // Add services to the container.
             builder.Services.AddControllersWithViews();
@@ -56,6 +56,7 @@ namespace la_mia_pizzeria_static
             app.MapControllerRoute(
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}");
+
             app.MapRazorPages();
 
             app.Run();

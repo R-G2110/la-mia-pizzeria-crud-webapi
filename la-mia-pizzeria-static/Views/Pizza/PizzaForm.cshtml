@@ -49,8 +49,8 @@
                             @foreach (var ingredient in ingredients.Skip(i * itemsPerColumn).Take(itemsPerColumn))
                             {
                                 <div class="form-check form-switch">
-                                    <input type="checkbox" role="switch" class="form-check-input" name="selectedIngredients" value="@ingredient.Id"
-                                    @(Model.PizzaIngredients != null && Model.PizzaIngredients.Any(pi => pi.IngredientId == ingredient.Id) ? "checked" : "") />
+                                    @* <input type="checkbox" role="switch" class="form-check-input" name="selectedIngredients" value="@ingredient.Id"
+                                    @(Model.Ingredients != null && Model.Ingredients.Any(pi => pi.Ingredients.Id == ingredient.Id) ? "checked" : "") /> *@
                                     <label class="form-check-label">@ingredient.Name</label>
                                 </div>
                             }

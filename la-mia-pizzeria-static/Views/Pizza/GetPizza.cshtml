@@ -26,13 +26,12 @@
                         </h6>
                         <h6 class="card-text">
                             <strong>Ingredienti:</strong>
-                            @if (Model.PizzaIngredients != null && Model.PizzaIngredients.Any())
+                            @if (Model.Ingredients != null && Model.Ingredients.Any())
                             {
-                                <span class="card-text">
-                                    @string.Join(", ", Model.PizzaIngredients
-                                             .Where(pi => pi.Ingredient != null)
+                                @* <span class="card-text">
+                                    @string.Join(", ", Model.Ingredients
                                              .Select(pi => pi.Ingredient.Name))
-                                </span>
+                                </span> *@
                             }
                             else
                             {
