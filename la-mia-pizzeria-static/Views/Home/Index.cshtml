@@ -1,0 +1,28 @@
+﻿@using Microsoft.AspNetCore.Identity
+
+@inject SignInManager<IdentityUser> SignInManager
+@inject UserManager<IdentityUser> UserManager
+@{
+    ViewData["Title"] = "Home Page";
+    
+}
+
+
+<div class="jumbotron text-center mt-5">
+    @if (!SignInManager.IsSignedIn(User))
+    {
+        <h1 class="display-4">Benvenuti alla Pizzeria!</h1>
+        <p class="lead">Il posto migliore per trovare e gustare le migliori pizze.</p>
+        <hr class="my-4">
+        <p>Accedi per gestire le tue pizze o esplorare il nostro menu.</p>
+        <p class="lead">
+            <a class="btn btn-primary btn-lg" id="login" asp-area="Identity" asp-page="/Account/Login">Login</a>
+            <a class="btn btn-secondary btn-lg" id="register" asp-area="Identity" asp-page="/Account/Register">Register</a>
+        </p>
+    }
+    else
+    {
+        <h1>Ciao @UserManager.GetUserName(User)!</h1>
+        <h2 class="display-4">Benvenuto/a alla Pizzeria!</h2>
+        <p class="lead">Il posto migliore per trovare e gustare le migliori pizze.</p>
+    }
