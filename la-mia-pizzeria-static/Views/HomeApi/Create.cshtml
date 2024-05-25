@@ -1,0 +1,51 @@
+﻿<div class="container">
+    <div class="row">
+        <div class="col"><h1>Crea pizza</h1></div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <form onsubmit="creaPizza(event)" method="post">
+                <div class="mb-3">
+                    <strong>Nome pizza:</strong>
+                    <input id="PizzaName" type="text" class="d-block w-100" />
+                </div>
+                <div class="mb-3">
+                    <strong>Descrizione:</strong>
+                    <input id="PizzaDescription" type="text" class="d-block w-100 is-invalid" />
+                </div>
+                <div class="mb-3">
+                    <strong>Prezzo:</strong>
+                    <input id="PizzaPrice" type="text" class="d-block w-100 is-invalid" />
+                </div>
+                <div class="mb-3">
+                    <input type="submit" class="btn btn-success" value="Crea" />
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+<script>
+    function creaPizza(evt) {
+        evt.preventDefault();
+        var name = document.getElementById('PizzaName').value;
+        var description = document.getElementById('PizzaDescription').value;
+        var price = document.getElementById('PizzaPrice').value;
+
+        axios.post('/api/PizzaWeb/CreatePizza', {
+            name: name,
+            description: description,
+            price: price
+        })
+            .then(function (response) {
+                console.log('Pizza created successfully:', response);
+                // Redirect to index page after pizza creation
+                window.location.href = '/'; 
+            })
+            .catch(function (error) {
+                console.error('Error creating pizza:', error);
+            });
+    }
+</script>

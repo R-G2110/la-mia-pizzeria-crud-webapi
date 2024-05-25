@@ -3,6 +3,7 @@ using la_mia_pizzeria_static.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
+using System.Xml.Linq;
 
 namespace la_mia_pizzeria_static.Controllers
 {
@@ -11,10 +12,11 @@ namespace la_mia_pizzeria_static.Controllers
     public class PizzaWebController : ControllerBase
     {
         [HttpGet]
-        public IActionResult GetAllPizzas()
+        public IActionResult GetAllPizzas(string? name)
         {
-            var pizzas = PizzaManager.GetAllPizzas();
-            return Ok(pizzas);
+            if (name == null)
+                return Ok(PizzaManager.GetAllPizzas());
+            return Ok(PizzaManager.GetPizzaByName(name));
         }
 
         [HttpGet]
