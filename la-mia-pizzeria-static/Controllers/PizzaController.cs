@@ -18,9 +18,15 @@ namespace LaMiaPizzeria.Controllers
             _logger = logger;
         }
 
+        
+        public IActionResult Index()
+        {
+            return View("Index");
+        }
+
         [HttpGet]
         [Authorize(Roles = "USER,ADMIN")]
-        public IActionResult Index()
+        public IActionResult GetAllPizzas()
         {
             return View(PizzaManager.GetAllPizzas());
         }

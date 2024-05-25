@@ -1,90 +1,25 @@
-﻿@model List<Pizza>
-@{
-    ViewData["Title"] = "Home Page";
-}
+﻿@using Microsoft.AspNetCore.Identity
 
-<h1 class="text-center mt-5"><strong>Lista Pizze</strong></h1>
-<div class="card my-5">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <div>
-            @if (User.IsInRole("ADMIN"))
-            {
-                <a href="@Url.Action("Create", "Pizza")" class="btn btn-primary">+ Crea nuova pizza</a>
-            }
-        </div>
-        <div>
-            <form asp-action="Search" method="post" class="d-flex">
-                <input onkeyup="searchPizza()" id="searchInput" type="text" name="searchString" class="form-control" placeholder="Cerca pizza..." />
-                <button type="submit" class="btn btn-primary ms-2">Cerca</button>
-            </form>
-        </div>
-    </div>
-    <div class="card-body">
-        @if (Model == null || !Model.Any())
-        {
-            <div class="alert alert-warning text-center" role="alert">
-                @if (!string.IsNullOrEmpty(ViewData["SearchMessage"] as string))
-                {
-                    <span>@ViewData["SearchMessage"]</span>
-                }
-                else
-                {
-                    <span>Non ci sono pizze disponibili.</span>
-                }
-            </div>
-        }
-        else
-        {
-            <table class="table table-striped table-hover" id="pizzaTable">
-                <thead>
-                    <tr>
-                        <th>
-                            Nome
-                            <button onclick="toggleSortOrder(0)" class="btn btn-sm btn-light">▲▼</button>
-                        </th>
-                        @* <th>Categoria</th> *@
-                        <th>Descrizione</th>
-                        <th style="width: 100px;">Prezzo</th>
-                        <th style="width: 100px;">Azioni</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var pizza in Model)
-                    {
-                        <tr style="cursor: pointer;">
-                            <td>@pizza.Name</td>
-                            @* <td>@(pizza.Category?.Name ?? "Nessuna categoria")</td> *@
-                            <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                @pizza.Description
-                            </td>
-                            <td>@pizza.Price.ToString("F2") €</td>
-                            <td class="actions-column">
-                                <div class="d-flex justify-content-evenly align-items-center">
-                                    <a href="@Url.Action("GetPizza", "Pizza", new { id = pizza.Id })" class="text-primary mx-1"><i class="fa-regular fa-eye"></i></a>
-                                    @if (User.IsInRole("ADMIN"))
-                                    {
-                                        <a href="@Url.Action("Edit", "Pizza", new { id = pizza.Id })" class="text-warning mx-1"><i class="fa-regular fa-pen-to-square"></i></a>
-                                        <a onclick="showDeleteModal('@Url.Action("Delete", "Pizza", new { id = pizza.Id })', '@pizza.Name')" class="text-danger mx-1"><i class="fa-solid fa-trash-can"></i></a>
-                                    }
-                                </div>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        }
-    </div>
-</div>
-@if (TempData["SuccessMessage"] != null)
-{
-    <div id="successAlert" class="alert alert-success alert-dismissible fade show" role="alert">
-        @TempData["SuccessMessage"]
-        <button id="closeAlertButton" type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-}
+@inject SignInManager<IdentityUser> SignInManager
+@inject UserManager<IdentityUser> UserManager
 
-<!-- Include delete modal -->
-@Html.Partial("_deleteModal")
 
-<!-- Include pizzaScript.js file -->
-<script src="~/js/pizzaScript.js"></script>
+
+<div class="jumbotron text-center mt-5">
+    @if (!SignInManager.IsSignedIn(User))
+    {
+        <h1 class="display-4">Benvenuti alla Pizzeria!</h1>
+        <p class="lead">Il posto migliore per trovare e gustare le migliori pizze.</p>
+        <hr class="my-4">
+        <p>Accedi per gestire le tue pizze o esplorare il nostro menu.</p>
+        <p class="lead">
+            <a class="btn btn-primary btn-lg" id="login" asp-area="Identity" asp-page="/Account/Login">Login</a>
+            <a class="btn btn-secondary btn-lg" id="register" asp-area="Identity" asp-page="/Account/Register">Register</a>
+        </p>
+    }
+    else
+    {
+        <h1>Ciao @UserManager.GetUserName(User)!</h1>
+        <h2 class="display-4">Benvenuto/a alla Pizzeria!</h2>
+        <p class="lead">Il posto migliore per trovare e gustare le migliori pizze.</p>
+    }

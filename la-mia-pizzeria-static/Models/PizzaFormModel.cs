@@ -11,7 +11,7 @@ namespace la_mia_pizzeria_static.Models
         public List<SelectListItem>? Ingredients { get; set; } // Gli elementi degli ingredienti selezionabili per la select (analogo a Categories)
         public List<string>? SelectedIngredients { get; set; } // Gli ID degli elementi effettivamente selezionati
 
-        public PizzaFormModel() { }
+        public PizzaFormModel(List<Pizza> pizza) { }
 
         public PizzaFormModel(Pizza pizza, List<Category>? categories)
         {
@@ -26,6 +26,10 @@ namespace la_mia_pizzeria_static.Models
         public PizzaFormModel(List<Category> categories)
         {
             Categories = categories;
+        }
+
+        public PizzaFormModel(List<Pizza> pizza, List<Category> categories) : this(pizza)
+        {
         }
 
         public void CreateIngredients()

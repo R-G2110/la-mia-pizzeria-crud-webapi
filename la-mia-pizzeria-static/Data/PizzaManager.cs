@@ -26,13 +26,14 @@ namespace la_mia_pizzeria_static.Data
             return db.Pizzas.ToList();
         }
 
-        public static Pizza GetPizza(int id, bool includeReferences = true)
+        public static List<Pizza> GetPizza(int id, bool includeReferences = true)
         {
             using PizzaDbContext db = new PizzaDbContext();
             if (includeReferences)
-                return db.Pizzas.Where(x => x.Id == id).Include(p => p.Category).Include(p => p.Ingredients).FirstOrDefault();
-            return db.Pizzas.FirstOrDefault(p => p.Id == id);
+                return db.Pizzas.Where(x => x.Id == id).Include(p => p.Category).Include(p => p.Ingredients).ToList();
+            return new List<Pizza> { db.Pizzas.FirstOrDefault(p => p.Id == id) };
         }
+
 
         public static Pizza GetPizzaByName(string name)
         {
@@ -138,21 +139,23 @@ namespace la_mia_pizzeria_static.Data
         {
             try
             {
-                //using PizzaDbContext db = new PizzaDbContext();
-                var pizzaDaCancellare = GetPizza(id, false); // db.Pizzas.FirstOrDefault(p => p.Id == id);
-                if (pizzaDaCancellare == null)
-                    return false;
+                using (PizzaDbContext db = new PizzaDbContext())
+                {
+                    var pizzaDaCancellare = db.Pizzas.FirstOrDefault(p => p.Id == id);
+                    if (pizzaDaCancellare == null)
+                        return false;
 
-                using PizzaDbContext db = new PizzaDbContext();
-                db.Remove(pizzaDaCancellare);
-                db.SaveChanges();
-                return true;
+                    db.Remove(pizzaDaCancellare);
+                    db.SaveChanges();
+                    return true;
+                }
             }
             catch (Exception ex)
             {
                 return false;
             }
         }
+
 
         public static void SeedPizza()
         {
